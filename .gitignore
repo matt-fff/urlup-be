@@ -8,3 +8,9 @@ wheels/
 
 # venv
 .venv
+
+.env
+
+# Infra artifacts
+dependencies_layer.zip
+

@@ -2,7 +2,7 @@ import json
 
 import boto3
 
-from urlup_be.config import Config
+from .config import Config
 
 conf = Config()
 
@@ -27,9 +27,7 @@ def handler(event, context):
 
     if "Item" in response:
         # URL found in DynamoDB, return the value
-        output_url = response["Item"][
-            "url"
-        ]  # Adjust based on your table's schema
+        output_url = response["Item"]["url"]
     else:
         return {
             "statusCode": 404,

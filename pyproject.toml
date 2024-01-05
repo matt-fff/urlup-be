@@ -88,7 +88,7 @@ reportUnknownMemberType = false
 reportPrivateImportUsage = false
 typeCheckingMode = "basic"
 stubPath = "typestubs"
-pythonVersion = "3.10"
+pythonVersion = "3.11"
 
 [tool.ruff]
 exclude = ["typestubs"]

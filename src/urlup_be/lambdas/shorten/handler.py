@@ -4,7 +4,7 @@ import sys
 import boto3
 from sqids import Sqids
 
-from urlup_be.config import Config
+from .config import Config
 
 conf = Config()
 sqids = Sqids()

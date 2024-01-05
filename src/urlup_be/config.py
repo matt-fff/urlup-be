@@ -12,6 +12,10 @@ SETTINGS_CONFIG = SettingsConfigDict(
 
 
 class Config(BaseSettings):
+    gateway_domain: str
+    zone_domain: str
+    cert_arn: str
+    cert_id: str
     table_name: str = "urlup"
     region: str = "us-west-2"
     tags: dict[str, str] = Field(default_factory=dict)
