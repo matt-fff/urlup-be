@@ -2,9 +2,48 @@ import json
 
 import pulumi
 import pulumi_aws as aws
+from pulumi_aws.apigateway import api_key, request_validator
 import pulumi_aws_apigateway as apigateway
 
 from urlup_be.stacks.aws.config import Config
+
+
+def api_usage_plan(
+    conf: Config,
+    api_gateway: apigateway.RestAPI,
+) -> aws.apigateway.UsagePlanKey:
+    key = aws.apigateway.ApiKey("defaultKey")
+
+    plan = aws.apigateway.UsagePlan(
+        "defaultPlan",
+        aws.apigateway.UsagePlanArgs(
+            api_stages=[
+                aws.apigateway.UsagePlanApiStageArgs(
+                    api_id=api_gateway.api.id,
+                    stage=api_gateway.stage.stage_name,
+                ),
+            ],
+            quota_settings=aws.apigateway.UsagePlanQuotaSettingsArgs(
+                limit=conf.usage.period_limit,
+                period=conf.usage.period_type,
+            ),
+            throttle_settings=aws.apigateway.UsagePlanThrottleSettingsArgs(
+                burst_limit=conf.usage.burst_limit,
+                rate_limit=conf.usage.rate_limit,
+            ),
+        ),
+    )
+
+    plan_key = aws.apigateway.UsagePlanKey(
+        "defaultPlanKey",
+        aws.apigateway.UsagePlanKeyArgs(
+            key_id=key.id,
+            key_type="API_KEY",
+            usage_plan_id=plan.id,
+        ),
+    )
+
+    return plan_key
 
 
 def lambdas(conf: Config, dynamo_table) -> tuple:
@@ -30,19 +69,23 @@ def lambdas(conf: Config, dynamo_table) -> tuple:
     )
 
     policy_document = dynamo_table.arn.apply(
-        lambda arn: json.dumps({
-            "Version": "2012-10-17",
-            "Statement": [{
-                "Effect": "Allow",
-                "Action": [
-                    "dynamodb:GetItem",
-                    "dynamodb:Query",
-                    "dynamodb:PutItem",
-                    "dynamodb:UpdateItem",
+        lambda arn: json.dumps(
+            {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "dynamodb:GetItem",
+                            "dynamodb:Query",
+                            "dynamodb:PutItem",
+                            "dynamodb:UpdateItem",
+                        ],
+                        "Resource": arn,
+                    }
                 ],
-                "Resource": arn,
-            }],
-        })
+            }
+        )
     )
 
     dynamo_policy = aws.iam.Policy(
@@ -117,16 +160,19 @@ def stack(conf: Config):
     api_gateway = apigateway.RestAPI(
         "api",
         stage_name=conf.env,
+        request_validator=apigateway.RequestValidator.ALL,
         routes=[
             apigateway.RouteArgs(
                 path="/shorten",
                 method=apigateway.Method.POST,
                 event_handler=shorten_lambda,
+                api_key_required=True,
             ),
             apigateway.RouteArgs(
                 path="/redirect",
                 method=apigateway.Method.POST,
                 event_handler=redir_lambda,
+                api_key_required=True,
             ),
         ],
     )
@@ -167,11 +213,14 @@ def stack(conf: Config):
         ),
     )
 
+    plan_key = api_usage_plan(conf, api_gateway)
+
     # Export the URL of the API Gateway
     # to be used to trigger the Lambda function
     pulumi.export(
         "url", pulumi.Output.concat("https://", base_path_mapping.domain_name)
     )
+    pulumi.export("api_key", plan_key.value)
 
 
 config = Config()
