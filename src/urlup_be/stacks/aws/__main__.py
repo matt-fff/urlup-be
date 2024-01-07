@@ -2,7 +2,6 @@ import json
 
 import pulumi
 import pulumi_aws as aws
-from pulumi_aws.apigateway import api_key, request_validator
 import pulumi_aws_apigateway as apigateway
 
 from urlup_be.stacks.aws.config import Config
@@ -69,23 +68,19 @@ def lambdas(conf: Config, dynamo_table) -> tuple:
     )
 
     policy_document = dynamo_table.arn.apply(
-        lambda arn: json.dumps(
-            {
-                "Version": "2012-10-17",
-                "Statement": [
-                    {
-                        "Effect": "Allow",
-                        "Action": [
-                            "dynamodb:GetItem",
-                            "dynamodb:Query",
-                            "dynamodb:PutItem",
-                            "dynamodb:UpdateItem",
-                        ],
-                        "Resource": arn,
-                    }
+        lambda arn: json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": [
+                    "dynamodb:GetItem",
+                    "dynamodb:Query",
+                    "dynamodb:PutItem",
+                    "dynamodb:UpdateItem",
                 ],
-            }
-        )
+                "Resource": arn,
+            }],
+        })
     )
 
     dynamo_policy = aws.iam.Policy(

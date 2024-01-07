@@ -1,6 +1,6 @@
 import os
 
-from pydantic import Field, BaseModel
+from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 SETTINGS_CONFIG = SettingsConfigDict(
