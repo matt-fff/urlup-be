@@ -27,6 +27,7 @@ parver==0.5
 protobuf==4.25.1
 pulumi==3.99.0
 pulumi-aws==6.17.0
+pulumi-aws-apigateway==2.1.1
 pycparser==2.21
 pydantic==2.5.3
 pydantic-core==2.14.6
@@ -40,6 +41,7 @@ s3transfer==0.10.0
 semver==2.13.0
 six==1.16.0
 sqids==0.4.1
+structlog==23.3.0
 typing-extensions==4.9.0
 urllib3==2.0.7
 werkzeug==3.0.1

@@ -12,12 +12,8 @@ SETTINGS_CONFIG = SettingsConfigDict(
 
 
 class Config(BaseSettings):
-    gateway_domain: str
-    zone_domain: str
-    cert_arn: str
-    cert_id: str
-    table_name: str = "urlup"
-    region: str = "us-west-2"
+    zone_domain: str = "urlup.org"
+    cert_domain: str = "api.urlup.org"
     tags: dict[str, str] = Field(default_factory=dict)
 
     model_config = SETTINGS_CONFIG

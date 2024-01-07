@@ -4,17 +4,15 @@ import boto3
 import pytest
 from moto import mock_dynamodb
 
-from urlup_be.config import Config
-
-conf = Config()
+os.environ["DDB_TABLE"] = "testTable"
 
 
 # Function to create DynamoDB table for testing
 @pytest.fixture(scope="function")
 def dynamodb_table(dynamodb):
-    dynamodb = boto3.resource("dynamodb", region_name=conf.region)
+    dynamodb = boto3.resource("dynamodb")
     table = dynamodb.create_table(
-        TableName=conf.table_name,
+        TableName=os.environ["DDB_TABLE"],
         KeySchema=[
             {"AttributeName": "short", "KeyType": "HASH"},
         ],
@@ -42,4 +40,4 @@ def aws_credentials():
 @pytest.fixture(scope="function")
 def dynamodb():
     with mock_dynamodb():
-        yield boto3.client("dynamodb", region_name=conf.region)
+        yield boto3.client("dynamodb")

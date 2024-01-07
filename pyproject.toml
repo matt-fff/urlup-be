@@ -12,6 +12,8 @@ dependencies = [
     "boto3>=1.34.11",
     "pydantic-settings>=2.1.0",
     "sqids>=0.4.1",
+    "pulumi_aws_apigateway>=2.1.1",
+    "structlog>=23.3.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
@@ -37,13 +39,13 @@ dev-dependencies = [
 ]
 
 [tool.rye.scripts]
-"fmt:black" = "black . --preview -l 79"
+"fmt:black" = "black . --preview"
 "fmt:isort" = "isort tests/ src/"
 "lint:ruff" = "ruff check src"
 "lint:ruff-tests" = "ruff check tests --ignore F811,F403"
 "lint:flake8" = "pflake8 src/"
 "lint:flake8-tests" = "pflake8 tests/ --ignore F401,F811,F403"
-"lint:bandit" = "bandit -r src/"
+"lint:bandit" = "bandit -c pyproject.toml -r src/"
 "lint:pylint" = "pylint src/"
 "lint:pylint-tests" = "pylint tests/ --disable=W0613,W0621"
 "typecheck" = "pyright"
@@ -56,6 +58,27 @@ allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/urlup_be"]
+
+[tool.black]
+line-length = 79
+target-version = ['py311']
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+[tool.pylint.MASTER]
+ignore-paths = [
+  "^src/urlup_be/lambdas/.venv/.*$"
+]
 
 [tool.pylint.'MESSAGES CONTROL']
 max-line-length = 79
@@ -74,6 +97,8 @@ disable = """
     method-cache-max-size-none,
     invalid-name,
     unused-argument,
+    consider-using-f-string,
+    use-dict-literal
 """
 
 [tool.pyright]
@@ -82,7 +107,8 @@ exclude = [
   "**/node_modules",
   "**/__pycache__",
   "**/typings",
-  "**/typestubs"
+  "**/typestubs",
+  "**/.venv"
 ]
 reportUnknownMemberType = false
 reportPrivateImportUsage = false
@@ -91,8 +117,12 @@ stubPath = "typestubs"
 pythonVersion = "3.11"
 
 [tool.ruff]
-exclude = ["typestubs"]
+exclude = ["typestubs", ".venv"]
 ignore = ["F401"]
 
 [tool.flake8]
 ignore = ["E203", "W503"]
+exclude = ["typestubs", ".venv"]
+
+[tool.bandit]
+exclude_dirs = ["src/urlup_be/lambdas/.venv"]

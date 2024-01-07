@@ -1,8 +1,12 @@
 import json
 
-from urlup_be.lambdas.redirect.handler import handler as redirect_handler
-from urlup_be.lambdas.shorten.handler import handler as shorten_handler
-from urlup_be.lambdas.shorten.handler import shorten
+from urlup_be.lambdas.handlers.package.redirect import (
+    handler as redirect_handler,
+)
+from urlup_be.lambdas.handlers.package.shorten import (
+    handler as shorten_handler,
+)
+from urlup_be.lambdas.handlers.package.util import shorten
 
 from .fixtures import dynamodb, dynamodb_table  # pylint: disable=unused-import
 
@@ -15,7 +19,7 @@ def test_flow(dynamodb, dynamodb_table):
     response = dynamodb_table.get_item(Key={"short": short_url})
     assert "Item" not in response
 
-    shorten_event = {"body": json.dumps({"url": input_url})}
+    shorten_event = {"url": input_url}
 
     response = shorten_handler(shorten_event, {})
     assert response["statusCode"] == 200
@@ -27,7 +31,7 @@ def test_flow(dynamodb, dynamodb_table):
     response = dynamodb_table.get_item(Key={"short": short_url})
     assert "Item" in response
 
-    redirect_event = {"body": json.dumps({"url": short_url})}
+    redirect_event = {"url": short_url}
     response = redirect_handler(redirect_event, {})
     assert response["statusCode"] == 200
     assert json.loads(response["body"]) == {
