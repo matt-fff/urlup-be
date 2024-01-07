@@ -30,7 +30,19 @@ def shorten(url: str, length=10) -> str:
     return base64_encoded[:length].decode()
 
 
+def decode_body(b64_body: str) -> dict[str, Any]:
+    return json.loads(base64.b64decode(b64_body.encode()).decode())
+
+
+def encode_body(body: dict[str, Any]) -> str:
+    return base64.b64encode(json.dumps(body).encode()).decode()
+
+
 def event_field(event: dict[str, Any], field: str, required: bool = False):
-    if required and field not in event:
+    if "body" not in event:
+        raise ValueError("request body cannot be missing")
+
+    body = decode_body(event["body"])
+    if required and field not in body:
         raise ValueError(f"field '{field}' cannot be missing")
-    return event[field]
+    return body[field]

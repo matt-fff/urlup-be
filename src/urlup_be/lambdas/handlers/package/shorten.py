@@ -16,7 +16,7 @@ def handler(event, context):
 
     # Extract the URL from the event
     try:
-        input_url = util.event_field(event, "url", required=True)
+        input_url = util.event_field(event, "url", required=True).rstrip("/?")
     except ValueError as exc:
         log.warn("missing_field", exc=exc)
         return util.http_error(message=" - ".join(exc.args), status=400)
@@ -34,8 +34,11 @@ def handler(event, context):
 
     if "Item" in response:
         # URL found in DynamoDB
-        stored_url = response["Item"]["url"]
+        stored_url = response["Item"]["url"]["S"]
 
+        # NOTE duplicate consolidation isn't standard behavior.
+        # If individual user metrics are introduced,
+        # even duplicates need separate records.
         if stored_url != input_url:
             log.error("collision_detected", ddb_response=response)
             return util.http_error()
