@@ -36,6 +36,7 @@ dev-dependencies = [
     "pytest>=7.4.4",
     "ipdb>=0.13.13",
     "pyright>=1.1.344",
+    "freezegun>=1.4.0",
 ]
 
 [tool.rye.scripts]

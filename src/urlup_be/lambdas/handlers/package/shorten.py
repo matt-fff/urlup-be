@@ -1,3 +1,4 @@
+from datetime import timezone, datetime
 import os
 
 import boto3
@@ -35,6 +36,8 @@ def handler(event, context):
     if "Item" in response:
         # URL found in DynamoDB
         stored_url = response["Item"]["url"]["S"]
+        clicks = response["Item"]["clicks"]["N"]
+        created_at = response["Item"]["created_at"]["S"]
 
         # NOTE duplicate consolidation isn't standard behavior.
         # If individual user metrics are introduced,
@@ -43,11 +46,24 @@ def handler(event, context):
             log.error("collision_detected", ddb_response=response)
             return util.http_error()
     else:
+        clicks = 0
+        created_at = datetime.now(timezone.utc).isoformat()
         ddb_client.put_item(
             TableName=ddb_table,
-            Item={"url": {"S": input_url}, "short": {"S": shortened}},
+            Item={
+                "url": {"S": input_url},
+                "short": {"S": shortened},
+                "created_at": {"S": created_at},
+                "clicks": {"N": str(clicks)},
+            },
         )
 
     return util.http_response(
-        {"url": input_url, "short": shortened}, status=200
+        {
+            "url": input_url,
+            "short": shortened,
+            "clicks": int(clicks),
+            "created_at": created_at,
+        },
+        status=200,
     )

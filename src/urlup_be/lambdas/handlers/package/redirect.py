@@ -1,7 +1,9 @@
 import os
 
 import boto3
+from botocore.exceptions import ClientError
 import structlog
+
 
 from . import util
 
@@ -21,21 +23,37 @@ def handler(event, context):
         log.warn("missing_field", exc=exc)
         return util.http_error(message=" - ".join(exc.args), status=400)
 
+    ddb_key = {"short": {"S": shortcode}}
+
     # Check if the URL is in DynamoDB
     try:
-        response = ddb_client.get_item(
-            TableName=ddb_table, Key={"short": {"S": shortcode}}
+        # response = ddb_client.get_item(TableName=ddb_table, Key=ddb_key)
+        response = ddb_client.update_item(
+            TableName=ddb_table,
+            Key=ddb_key,
+            UpdateExpression="SET clicks = clicks + :val",
+            ExpressionAttributeValues={":val": {"N": "1"}},
+            ReturnValues="ALL_NEW",
         )
+    except ClientError:
+        return util.http_error(message="URL not found", status=404)
     except Exception:
-        log.exception()
+        log.exception("ddb_update_failure")
         return util.http_error()
 
-    if "Item" in response:
-        # URL found in DynamoDB, return the value
-        output_url = response["Item"]["url"]["S"]
-    else:
+    if "Attributes" not in response:
         return util.http_error(message="URL not found", status=404)
 
+    output_url = response["Attributes"]["url"]["S"]
+    clicks = response["Attributes"]["clicks"]["N"]
+    created_at = response["Attributes"]["created_at"]["S"]
+
     return util.http_response(
-        {"url": output_url, "short": shortcode}, status=200
+        {
+            "url": output_url,
+            "short": shortcode,
+            "clicks": int(clicks),
+            "created_at": created_at,
+        },
+        status=200,
     )
