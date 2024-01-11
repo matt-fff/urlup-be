@@ -1,7 +1,9 @@
 import json
 from datetime import datetime, timezone
+
 from freezegun import freeze_time
 
+from urlup_be.lambdas.handlers.package.get import handler as get_handler
 from urlup_be.lambdas.handlers.package.redirect import (
     handler as redirect_handler,
 )
@@ -21,10 +23,14 @@ def test_flow(dynamodb, dynamodb_table):
     response = dynamodb_table.get_item(Key={"short": shortcode})
     assert "Item" not in response
     redirect_event = {"body": encode_body({"shortcode": shortcode})}
+
+    # test a redirect 404
     response = redirect_handler(redirect_event, {})
     assert response["statusCode"] == 404
 
-    # test a redirect 404
+    # test a get 404
+    response = get_handler(redirect_event, {})
+    assert response["statusCode"] == 404
 
     shorten_event = {"body": encode_body({"url": input_url})}
 
@@ -44,9 +50,25 @@ def test_flow(dynamodb, dynamodb_table):
     response = dynamodb_table.get_item(Key={"short": shortcode})
     assert "Item" in response
 
+    # Test get
+    get_event = {"body": encode_body({"shortcode": shortcode})}
+    response = get_handler(get_event, {})
+    assert response["statusCode"] == 200
+    assert json.loads(response["body"]) == {
+        "url": input_url,
+        "short": shortcode,
+        "clicks": 0,
+        "created_at": now.isoformat(),
+    }
+
     # Test redirect
-    redirect_event = {"body": encode_body({"shortcode": shortcode})}
-    response = redirect_handler(redirect_event, {})
+    response = redirect_handler(get_event, {})
+    assert response["statusCode"] == 302
+    assert response["headers"]["Location"] == input_url
+
+    # Test get
+    get_event = {"body": encode_body({"shortcode": shortcode})}
+    response = get_handler(get_event, {})
     assert response["statusCode"] == 200
     assert json.loads(response["body"]) == {
         "url": input_url,

@@ -1,5 +1,5 @@
-from datetime import timezone, datetime
 import os
+from datetime import datetime, timezone
 
 import boto3
 import structlog

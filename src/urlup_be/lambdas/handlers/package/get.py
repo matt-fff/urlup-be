@@ -26,26 +26,26 @@ def handler(event, context):
 
     # Check if the URL is in DynamoDB
     try:
-        response = ddb_client.update_item(
-            TableName=ddb_table,
-            Key=ddb_key,
-            UpdateExpression="SET clicks = clicks + :val",
-            ExpressionAttributeValues={":val": {"N": "1"}},
-            ReturnValues="ALL_NEW",
-        )
+        response = ddb_client.get_item(TableName=ddb_table, Key=ddb_key)
     except ClientError:
         return util.http_error(message="URL not found", status=404)
     except Exception:
         log.exception("ddb_update_failure")
         return util.http_error()
 
-    if "Attributes" not in response:
+    if "Item" not in response:
         return util.http_error(message="URL not found", status=404)
 
-    output_url = response["Attributes"]["url"]["S"]
+    output_url = response["Item"]["url"]["S"]
+    clicks = response["Item"]["clicks"]["N"]
+    created_at = response["Item"]["created_at"]["S"]
 
-    return {
-        "statusCode": 302,
-        "headers": {"Location": output_url},
-        "body": "Redirecting...",
-    }
+    return util.http_response(
+        {
+            "url": output_url,
+            "short": shortcode,
+            "clicks": int(clicks),
+            "created_at": created_at,
+        },
+        status=200,
+    )

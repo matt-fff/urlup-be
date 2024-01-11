@@ -116,17 +116,18 @@ def lambdas(conf: Config, dynamo_table) -> tuple:
         environment={"variables": {"DDB_TABLE": dynamo_table.name}},
     )
 
-    # Create the Lambda function
-    shorten_lambda = aws.lambda_.Function(
+    # Create the Lambda functions
+    create_lambda = aws.lambda_.Function(
         "shortenLambda", handler="package.shorten.handler", **lambda_kwargs
     )
-
-    # Create the Lambda function
     redir_lambda = aws.lambda_.Function(
         "redirectLambda", handler="package.redirect.handler", **lambda_kwargs
     )
+    get_lambda = aws.lambda_.Function(
+        "getLambda", handler="package.get.handler", **lambda_kwargs
+    )
 
-    return shorten_lambda, redir_lambda
+    return create_lambda, redir_lambda, get_lambda
 
 
 def stack(conf: Config):
@@ -149,7 +150,7 @@ def stack(conf: Config):
     zone_id = domain_stack.get_output("zone_id")
     zone = aws.route53.get_zone(zone_id=zone_id)  # pyright: ignore
 
-    shorten_lambda, redir_lambda = lambdas(conf, dynamo_table)
+    create_lambda, redir_lambda, get_lambda = lambdas(conf, dynamo_table)
 
     # Create an API Gateway to trigger the Lambda functions
     api_gateway = apigateway.RestAPI(
@@ -158,15 +159,21 @@ def stack(conf: Config):
         request_validator=apigateway.RequestValidator.ALL,
         routes=[
             apigateway.RouteArgs(
-                path="/shorten",
+                path="/create",
                 method=apigateway.Method.POST,
-                event_handler=shorten_lambda,
+                event_handler=create_lambda,
                 api_key_required=True,
             ),
             apigateway.RouteArgs(
                 path="/redirect",
                 method=apigateway.Method.POST,
                 event_handler=redir_lambda,
+                api_key_required=True,
+            ),
+            apigateway.RouteArgs(
+                path="/get",
+                method=apigateway.Method.POST,
+                event_handler=get_lambda,
                 api_key_required=True,
             ),
         ],
