@@ -68,19 +68,23 @@ def lambdas(conf: Config, dynamo_table) -> tuple:
     )
 
     policy_document = dynamo_table.arn.apply(
-        lambda arn: json.dumps({
-            "Version": "2012-10-17",
-            "Statement": [{
-                "Effect": "Allow",
-                "Action": [
-                    "dynamodb:GetItem",
-                    "dynamodb:Query",
-                    "dynamodb:PutItem",
-                    "dynamodb:UpdateItem",
+        lambda arn: json.dumps(
+            {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "dynamodb:GetItem",
+                            "dynamodb:Query",
+                            "dynamodb:PutItem",
+                            "dynamodb:UpdateItem",
+                        ],
+                        "Resource": arn,
+                    }
                 ],
-                "Resource": arn,
-            }],
-        })
+            }
+        )
     )
 
     dynamo_policy = aws.iam.Policy(
