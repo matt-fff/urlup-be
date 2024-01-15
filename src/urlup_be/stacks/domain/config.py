@@ -1,6 +1,6 @@
 import os
 
-from pydantic import Field
+from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 SETTINGS_CONFIG = SettingsConfigDict(
@@ -11,9 +11,18 @@ SETTINGS_CONFIG = SettingsConfigDict(
 )
 
 
+class DomainConfig(BaseModel):
+    zone_domain: str
+    cert_domain: str
+
+
 class Config(BaseSettings):
-    zone_domain: str = "urlup.org"
-    cert_domain: str = "api.urlup.org"
+    api_domain: DomainConfig = DomainConfig(
+        zone_domain="urlup.org", cert_domain="api.urlup.org"
+    )
+    redirect_domain: DomainConfig = DomainConfig(
+        zone_domain="uu1.ink", cert_domain="uu1.ink"
+    )
     tags: dict[str, str] = Field(default_factory=dict)
 
     model_config = SETTINGS_CONFIG

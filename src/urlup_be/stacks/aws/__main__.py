@@ -149,11 +149,6 @@ def stack(conf: Config):
         tags=conf.tags,
     )
 
-    domain_stack = pulumi.StackReference(conf.domain_stack_name)
-    domain_name = domain_stack.get_output("domain")
-    zone_id = domain_stack.get_output("zone_id")
-    zone = aws.route53.get_zone(zone_id=zone_id)  # pyright: ignore
-
     create_lambda, redir_lambda, get_lambda = lambdas(conf, dynamo_table)
 
     # Create an API Gateway to trigger the Lambda functions
@@ -169,12 +164,6 @@ def stack(conf: Config):
                 api_key_required=True,
             ),
             apigateway.RouteArgs(
-                path="/redirect",
-                method=apigateway.Method.POST,
-                event_handler=redir_lambda,
-                api_key_required=True,
-            ),
-            apigateway.RouteArgs(
                 path="/get",
                 method=apigateway.Method.POST,
                 event_handler=get_lambda,
@@ -182,51 +171,74 @@ def stack(conf: Config):
             ),
         ],
     )
+    plan_key = api_usage_plan(conf, api_gateway)
+    pulumi.export("api_key", plan_key.value)
 
-    certificate = aws.acm.Certificate.get(
-        "shortCert", id=domain_stack.get_output("certificate_arn")
-    )
-
-    # Setup the custom domain name for API Gateway
-    gateway_domain_name = aws.apigateway.DomainName(
-        "apiDomainName",
-        domain_name=domain_name,
-        certificate_arn=certificate.arn,
-        tags=conf.tags,
-    )
-
-    # Create a DNS record to point the custom domain to the API Gateway
-    aws.route53.Record(
-        "apiDnsRecord",
-        name=domain_name,
-        type="A",
-        zone_id=zone.id,
-        aliases=[
-            aws.route53.RecordAliasArgs(
-                name=gateway_domain_name.cloudfront_domain_name,
-                zone_id=gateway_domain_name.cloudfront_zone_id,
-                evaluate_target_health=True,
-            )
+    redirect_gateway = apigateway.RestAPI(
+        "redirect",
+        stage_name=conf.env,
+        request_validator=apigateway.RequestValidator.ALL,
+        routes=[
+            apigateway.RouteArgs(
+                path="/{shortcode}",
+                method=apigateway.Method.GET,
+                event_handler=redir_lambda,
+                api_key_required=False,
+            ),
         ],
     )
 
-    base_path_mapping = aws.apigateway.BasePathMapping(
-        "apiPathMapping",
-        aws.apigateway.BasePathMappingArgs(
-            rest_api=api_gateway.api,
-            domain_name=gateway_domain_name.domain_name,
-            stage_name=api_gateway.stage.stage_name,
-        ),
-    )
+    domain_stack = pulumi.StackReference(conf.domain_stack_name)
+    for prefix, gateway in (
+        ("api", api_gateway),
+        ("redirect", redirect_gateway),
+    ):
+        domain_name = domain_stack.get_output(f"{prefix}_domain")
+        zone_id = domain_stack.get_output(f"{prefix}_zone_id")
+        zone = aws.route53.get_zone(zone_id=zone_id)  # pyright: ignore
 
-    plan_key = api_usage_plan(conf, api_gateway)
+        certificate = aws.acm.Certificate.get(
+            f"{prefix}Cert", id=domain_stack.get_output(f"{prefix}_cert_arn")
+        )
 
-    # Export the URL of the API Gateway
-    # to be used to trigger the Lambda function
-    pulumi.export(
-        "url", pulumi.Output.concat("https://", base_path_mapping.domain_name)
-    )
-    pulumi.export("api_key", plan_key.value)
+        # Setup the custom domain name for API Gateway
+        gateway_domain_name = aws.apigateway.DomainName(
+            f"{prefix}DomainName",
+            domain_name=domain_name,
+            certificate_arn=certificate.arn,
+            tags=conf.tags,
+        )
+
+        # Create a DNS record to point the custom domain to the API Gateway
+        aws.route53.Record(
+            f"{prefix}DnsRecord",
+            name=domain_name,
+            type="A",
+            zone_id=zone.id,
+            aliases=[
+                aws.route53.RecordAliasArgs(
+                    name=gateway_domain_name.cloudfront_domain_name,
+                    zone_id=gateway_domain_name.cloudfront_zone_id,
+                    evaluate_target_health=True,
+                )
+            ],
+        )
+
+        base_path_mapping = aws.apigateway.BasePathMapping(
+            f"{prefix}PathMapping",
+            aws.apigateway.BasePathMappingArgs(
+                rest_api=gateway.api,
+                domain_name=gateway_domain_name.domain_name,
+                stage_name=gateway.stage.stage_name,
+            ),
+        )
+
+        # Export the URL of the API Gateway
+        # to be used to trigger the Lambda function
+        pulumi.export(
+            f"{prefix}_url",
+            pulumi.Output.concat("https://", base_path_mapping.domain_name),
+        )
 
 
 config = Config()

@@ -13,12 +13,13 @@ def handler(event, context):
     # Initialize DynamoDB client
     ddb_client = boto3.client("dynamodb")
     ddb_table = os.environ["DDB_TABLE"]
+    query_params = event.get("pathParameters", {})
     log = LOG.bind(lambda_event=event, context=context, ddb_table=ddb_table)
 
-    # Extract the URL from the event
     try:
-        shortcode = util.event_field(event, "shortcode", required=True)
-    except ValueError as exc:
+        # shortcode = util.event_field(event, "shortcode", required=True)
+        shortcode = query_params["shortcode"]
+    except (KeyError, ValueError) as exc:
         log.warn("missing_field", exc=exc)
         return util.http_error(message=" - ".join(exc.args), status=400)
 
