@@ -18,7 +18,7 @@ def http_error(
     return http_response({"message": message}, status=status)
 
 
-def shorten(url: str, length=10) -> str:
+def shorten(url: str, length=7) -> str:
     # Hash the URL using SHA256
     hash_object = hashlib.sha256(url.encode())
     hash_digest = hash_object.digest()
