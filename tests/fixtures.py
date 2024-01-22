@@ -39,6 +39,6 @@ def aws_credentials():
 
 
 @pytest.fixture()
-def dynamodb(aws_credentials):
+def dynamodb():
     with mock_dynamodb():
-        yield boto3.client("dynamodb", region_name="us-west-2")
+        yield boto3.client("dynamodb")
