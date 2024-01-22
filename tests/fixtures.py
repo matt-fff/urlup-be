@@ -10,8 +10,8 @@ os.environ["DDB_TABLE"] = "testTable"
 # Function to create DynamoDB table for testing
 @pytest.fixture(scope="function")
 def dynamodb_table(dynamodb):
-    dynamodb = boto3.resource("dynamodb")
-    table = dynamodb.create_table(
+    ddb = boto3.resource("dynamodb")
+    table = ddb.create_table(
         TableName=os.environ["DDB_TABLE"],
         KeySchema=[
             {"AttributeName": "short", "KeyType": "HASH"},
@@ -35,10 +35,10 @@ def aws_credentials():
     os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
     os.environ["AWS_SECURITY_TOKEN"] = "testing"
     os.environ["AWS_SESSION_TOKEN"] = "testing"
-    os.environ["AWS_REGION"] = "us-west-2"
+    os.environ["AWS_DEFAULT_REGION"] = "us-west-2"
 
 
 @pytest.fixture()
 def dynamodb():
     with mock_dynamodb():
-        yield boto3.client("dynamodb", region_name="us-west-2")
+        yield boto3.client("dynamodb")
