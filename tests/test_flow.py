@@ -5,15 +5,11 @@ from typing import Any
 from freezegun import freeze_time
 
 from urlup_be.lambdas.handlers.package.get import handler as get_handler
-from urlup_be.lambdas.handlers.package.redirect import (
-    handler as redirect_handler,
-)
-from urlup_be.lambdas.handlers.package.shorten import (
-    handler as shorten_handler,
-)
+from urlup_be.lambdas.handlers.package.redirect import handler as redirect_handler
+from urlup_be.lambdas.handlers.package.shorten import handler as shorten_handler
 from urlup_be.lambdas.handlers.package.util import encode_body, shorten
 
-from .fixtures import dynamodb, dynamodb_table  # pylint: disable=unused-import
+from .fixtures import *
 
 
 def event_body(**kwargs) -> dict[str, Any]:
