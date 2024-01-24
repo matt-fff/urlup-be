@@ -1,13 +1,23 @@
 import base64
 import hashlib
 import json
+import os
 from typing import Any
+
+FRONTEND_URL = os.environ.get("FRONTEND_URL")
 
 
 def http_response(body: dict[str, Any], status: int = 200) -> dict[str, Any]:
+    headers = {
+        "Content-Type": "application/json",
+    }
+
+    if FRONTEND_URL:
+        headers["Access-Control-Allow-Origin"] = FRONTEND_URL
+
     return {
         "statusCode": status,
-        "headers": {"Content-Type": "application/json"},
+        "headers": headers,
         "body": json.dumps(body),
     }
 

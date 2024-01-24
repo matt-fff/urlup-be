@@ -22,6 +22,7 @@ class Config(BaseSettings):
     env: str = "dev"
     domain_stack_name: str = "codefold/urlup-domain/dev"
     table_name: str = "urlup"
+    frontend_url: str = "https://urlup.org"
     tags: dict[str, str] = Field(default_factory=dict)
     usage: UsageLimits = Field(default_factory=UsageLimits)
 

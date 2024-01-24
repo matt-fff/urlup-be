@@ -45,7 +45,7 @@ def api_usage_plan(
     return plan_key
 
 
-def lambdas(conf: Config, dynamo_table) -> tuple:
+def lambdas(conf: Config, dynamo_table) -> dict[str, aws.lambda_.Function]:
     lambdas_dir = "../../lambdas"
 
     # Create an IAM role that the Lambda function can assume
@@ -117,7 +117,12 @@ def lambdas(conf: Config, dynamo_table) -> tuple:
             {".": pulumi.asset.FileArchive(f"{lambdas_dir}/handlers")}
         ),
         tags=conf.tags,
-        environment={"variables": {"DDB_TABLE": dynamo_table.name}},
+        environment={
+            "variables": {
+                "DDB_TABLE": dynamo_table.name,
+                "FRONTEND_URL": conf.frontend_url,
+            }
+        },
     )
 
     # Create the Lambda functions
@@ -130,8 +135,16 @@ def lambdas(conf: Config, dynamo_table) -> tuple:
     get_lambda = aws.lambda_.Function(
         "getLambda", handler="package.get.handler", **lambda_kwargs
     )
+    options_lambda = aws.lambda_.Function(
+        "optionsLambda", handler="package.options.handler", **lambda_kwargs
+    )
 
-    return create_lambda, redir_lambda, get_lambda
+    return {
+        "create": create_lambda,
+        "redirect": redir_lambda,
+        "get": get_lambda,
+        "options": options_lambda,
+    }
 
 
 def configure_gateway(
@@ -201,7 +214,7 @@ def stack(conf: Config):
         tags=conf.tags,
     )
 
-    create_lambda, redir_lambda, get_lambda = lambdas(conf, dynamo_table)
+    handlers = lambdas(conf, dynamo_table)
 
     # Create an API Gateway to trigger the Lambda functions
     api_gateway = apigateway.RestAPI(
@@ -212,14 +225,26 @@ def stack(conf: Config):
             apigateway.RouteArgs(
                 path="/create",
                 method=apigateway.Method.POST,
-                event_handler=create_lambda,
+                event_handler=handlers["create"],
                 api_key_required=True,
             ),
             apigateway.RouteArgs(
                 path="/get",
                 method=apigateway.Method.POST,
-                event_handler=get_lambda,
+                event_handler=handlers["get"],
                 api_key_required=True,
+            ),
+            apigateway.RouteArgs(
+                path="/create",
+                method=apigateway.Method.OPTIONS,
+                event_handler=handlers["options"],
+                api_key_required=False,
+            ),
+            apigateway.RouteArgs(
+                path="/get",
+                method=apigateway.Method.OPTIONS,
+                event_handler=handlers["options"],
+                api_key_required=False,
             ),
         ],
     )
@@ -234,7 +259,7 @@ def stack(conf: Config):
             apigateway.RouteArgs(
                 path="/{shortcode}",
                 method=apigateway.Method.GET,
-                event_handler=redir_lambda,
+                event_handler=handlers["redirect"],
                 api_key_required=False,
             ),
         ],
