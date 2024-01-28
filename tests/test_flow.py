@@ -13,7 +13,7 @@ from urlup_be.lambdas.handlers.package.shorten import (
 )
 from urlup_be.lambdas.handlers.package.util import encode_body, shorten
 
-from .fixtures import dynamodb, dynamodb_table  # pylint: disable=unused-import
+from .fixtures import *
 
 
 def event_body(**kwargs) -> dict[str, Any]:

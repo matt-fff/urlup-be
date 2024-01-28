@@ -28,16 +28,24 @@ def dynamodb_table(dynamodb):
 
 
 # The actual test case
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="module", autouse=True)
 def aws_credentials():
     """Mocked AWS Credentials for moto."""
     os.environ["AWS_ACCESS_KEY_ID"] = "testing"
     os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
     os.environ["AWS_SECURITY_TOKEN"] = "testing"
     os.environ["AWS_SESSION_TOKEN"] = "testing"
+    os.environ["AWS_DEFAULT_REGION"] = "us-west-2"
 
 
 @pytest.fixture(scope="function")
 def dynamodb():
     with mock_dynamodb():
         yield boto3.client("dynamodb")
+
+
+__all__ = [
+    "aws_credentials",
+    "dynamodb_table",
+    "dynamodb",
+]
