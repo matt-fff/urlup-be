@@ -81,11 +81,11 @@ packages = ["src/urlup_be"]
 
 [tool.isort]
 profile = "black"
-line_length = 79
+line_length = 88
 
 
 [tool.black]
-line-length = 79
+line-length = 88
 target-version = ['py311']
 exclude = '''
 /(
@@ -104,7 +104,7 @@ exclude = '''
 ignore-paths = ["^src/urlup_be/lambdas/.venv/.*$"]
 
 [tool.pylint.'MESSAGES CONTROL']
-max-line-length = 79
+max-line-length = 88
 min-similarity-lines = 7
 extension-pkg-whitelist = "pydantic"
 disable = """
