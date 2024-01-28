@@ -1,7 +1,6 @@
 import pulumi
 import pulumi_aws as aws
-
-from urlup_be.stacks.domain.config import Config
+from config import Config
 
 
 def stack(conf: Config):
