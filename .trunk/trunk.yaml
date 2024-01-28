@@ -43,3 +43,7 @@ actions:
     - trunk-announce
     - trunk-fmt-pre-commit
     - trunk-upgrade-available
+merge:
+  required_statuses:
+    - Trunk Check
+    - Unit Tests
