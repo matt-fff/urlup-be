@@ -29,13 +29,13 @@ dev-dependencies = [
   "ruff>=0.1.9",
   "bandit>=1.7.6",
   "pylint>=3.0.3",
-  "pyproject-flake8>=5.0.4.post1",
   "flake8>=5.0.4",
   "pip>=23.3.2",
   "pytest>=7.4.4",
   "ipdb>=0.13.13",
   "pyright>=1.1.344",
   "freezegun>=1.4.0",
+  "pyproject-flake8>=5.0.4.post1",
 ]
 
 [tool.rye.scripts]
@@ -81,11 +81,11 @@ packages = ["src/urlup_be"]
 
 [tool.isort]
 profile = "black"
-line_length = 88
+line_length = 79
 
 
 [tool.black]
-line-length = 88
+line-length = 79
 target-version = ['py311']
 exclude = '''
 /(
@@ -104,7 +104,7 @@ exclude = '''
 ignore-paths = ["^src/urlup_be/lambdas/.venv/.*$"]
 
 [tool.pylint.'MESSAGES CONTROL']
-max-line-length = 88
+max-line-length = 79
 min-similarity-lines = 7
 extension-pkg-whitelist = "pydantic"
 disable = """
@@ -144,6 +144,7 @@ exclude = ["typestubs", ".venv"]
 ignore = ["F401"]
 
 [tool.flake8]
+max-line-length = 79
 ignore = ["E203", "W503"]
 exclude = ["typestubs", ".venv"]
 

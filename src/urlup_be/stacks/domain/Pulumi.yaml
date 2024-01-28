@@ -2,5 +2,5 @@ name: urlup-domain
 runtime:
   name: python
   options:
-    virtualenv: ../../../../.venv
+    virtualenv: .venv
 description: domain and certificate for urlup link shortener

@@ -3,8 +3,7 @@ import json
 import pulumi
 import pulumi_aws as aws
 import pulumi_aws_apigateway as apigateway
-
-from urlup_be.stacks.aws.config import Config
+from config import Config
 
 
 def api_usage_plan(
