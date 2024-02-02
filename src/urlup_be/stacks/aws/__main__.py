@@ -119,7 +119,7 @@ def lambdas(conf: Config, dynamo_table) -> dict[str, aws.lambda_.Function]:
         environment={
             "variables": {
                 "DDB_TABLE": dynamo_table.name,
-                "FRONTEND_URL": conf.frontend_url,
+                "ALLOWED_FRONTENDS": conf.allowed_frontends,
             }
         },
     )

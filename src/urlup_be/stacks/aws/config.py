@@ -22,7 +22,13 @@ class Config(BaseSettings):
     env: str = "dev"
     domain_stack_name: str = "codefold/urlup-domain/dev"
     table_name: str = "urlup"
-    frontend_url: str = "https://urlup.org"
+    allowed_frontends: list[str] = Field(
+        default=[
+            # TODO
+            "https://urlup.org",
+            "https://<WILDCARD>.urlup.codefold.net",
+        ]
+    )
     tags: dict[str, str] = Field(default_factory=dict)
     usage: UsageLimits = Field(default_factory=UsageLimits)
 
