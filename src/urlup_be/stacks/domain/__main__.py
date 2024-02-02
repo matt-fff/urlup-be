@@ -1,9 +1,8 @@
 import pulumi
 import pulumi_aws as aws
-from config import Config
 
 
-def stack(conf: Config):
+def stack(conf: pulumi.Config):
     # We explicitly use us-east-1 for the cert,
     # since it's required for EDGE endpoints
     us_east_1 = aws.Provider(
@@ -12,17 +11,20 @@ def stack(conf: Config):
             region="us-east-1",
         ),
     )
+    tags = conf.require_object("tags")
 
     for prefix, domain_conf in (
-        ("api", conf.api_domain),
-        ("redirect", conf.redirect_domain),
+        ("api", conf.require_object("api_domain")),
+        ("redirect", conf.require_object("redirect_domain")),
+        ("fe-prod", conf.require_object("frontend_prod_domain")),
+        ("fe-staging", conf.require_object("frontend_staging_domain")),
     ):
-        zone = aws.route53.get_zone(name=domain_conf.zone_domain)
+        zone = aws.route53.get_zone(name=domain_conf["zone_domain"])
         cert = aws.acm.Certificate(
             f"{prefix}Cert",
-            domain_name=domain_conf.cert_domain,
+            domain_name=domain_conf["cert_domain"],
             validation_method="DNS",
-            tags=conf.tags,
+            tags=tags,
             opts=pulumi.ResourceOptions(provider=us_east_1),
         )
         validation_option = cert.domain_validation_options[0]
@@ -50,8 +52,9 @@ def stack(conf: Config):
         pulumi.export(f"{prefix}_zone_id", zone.id)
         pulumi.export(f"{prefix}_cert_arn", cert.arn)
         pulumi.export(f"{prefix}_cert_id", cert.id)
-        pulumi.export(f"{prefix}_domain", domain_conf.cert_domain)
+        pulumi.export(f"{prefix}_domain", domain_conf["cert_domain"])
 
 
-config = Config()
+# Import the program's configuration settings.
+config = pulumi.Config()
 stack(config)
