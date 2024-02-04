@@ -1,2 +1,23 @@
 config:
   aws:region: us-east-1
+  env: dev
+  api_domain:
+    zone_domain: urlup.org
+    cert_domain: api.urlup.org
+    gateway_domain: api.urlup.org
+  redirect_domain:
+    zone_domain: uu1.ink
+    cert_domain: uu1.ink
+    gateway_domain: uu1.ink
+
+  table_name: urlup
+  allowed_frontends:
+    - https://urlup.org
+    - re:https://\.*.urlup.codefold.net
+  usage:
+    period_limit: 3000
+    period_type: DAY
+    rate_limit: 60
+    burst_limit: 300
+  tags:
+    app: urlup
