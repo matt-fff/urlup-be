@@ -10,11 +10,13 @@ def handler(event, context):
     # Tried adding it as an x-amazon-apigateway-integration object,
     # but keep getting an "No integration defined for method" error
     # due to dependencies between routes.
-    return {
-        "statusCode": 200,
-        "headers": {
-            "Access-Control-Allow-Methods": "OPTIONS,POST",
-            "Access-Control-Allow-Headers": "Content-Type,X-Api-Key",
-            "Access-Control-Allow-Origin": util.FRONTEND_URL,
-        },
+
+    origin = event.get("headers", {}).get("origin")
+    headers = {
+        "Access-Control-Allow-Methods": "OPTIONS,POST",
+        "Access-Control-Allow-Headers": "Content-Type,X-Api-Key",
     }
+
+    util.add_allow_origin(headers, origin)
+
+    return {"statusCode": 200, "headers": headers}

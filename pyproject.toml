@@ -35,7 +35,6 @@ dev-dependencies = [
   "ipdb>=0.13.13",
   "pyright>=1.1.344",
   "freezegun>=1.4.0",
-  "pyproject-flake8>=5.0.4.post1",
 ]
 
 [tool.rye.scripts]
@@ -43,8 +42,8 @@ dev-dependencies = [
 "fmt:isort" = "isort tests/ src/"
 "lint:ruff" = "ruff check src"
 "lint:ruff-tests" = "ruff check tests --ignore F811,F403"
-"lint:flake8" = "pflake8 src/"
-"lint:flake8-tests" = "pflake8 tests/ --ignore F401,F811,F403"
+"lint:flake8" = "flake8 src/"
+"lint:flake8-tests" = "flake8 tests/ --ignore F401,F811,F403"
 "lint:bandit" = "bandit -c pyproject.toml -r src/"
 "lint:pylint" = "pylint src/"
 "lint:pylint-tests" = "pylint tests/ --disable=W0613,W0621"
@@ -133,6 +132,7 @@ exclude = [
   "**/typestubs",
   "**/.venv",
 ]
+reportMissingImports = false
 reportUnknownMemberType = false
 reportPrivateImportUsage = false
 typeCheckingMode = "basic"
@@ -142,12 +142,3 @@ pythonVersion = "3.11"
 [tool.ruff]
 exclude = ["typestubs", ".venv"]
 ignore = ["F401"]
-
-[tool.flake8]
-max-line-length = 79
-ignore = ["E203", "W503"]
-exclude = ["typestubs", ".venv"]
-
-[tool.bandit]
-exclude_dirs = ["src/urlup_be/lambdas/.venv"]
-disable = ["B101"]

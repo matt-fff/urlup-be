@@ -14,6 +14,7 @@ def handler(event, context):
     # Initialize DynamoDB client
     ddb_client = boto3.client("dynamodb")
     ddb_table = os.environ["DDB_TABLE"]
+    origin = event.get("headers", {}).get("origin")
     log = LOG.bind(lambda_event=event, context=context, ddb_table=ddb_table)
 
     # Extract the URL from the event
@@ -21,7 +22,9 @@ def handler(event, context):
         input_url = util.event_field(event, "url", required=True).rstrip("/?")
     except ValueError as exc:
         log.warn("missing_field", exc=exc)
-        return util.http_error(message=" - ".join(exc.args), status=400)
+        return util.http_error(
+            message=" - ".join(exc.args), status=400, origin=origin
+        )
 
     clicks = 0
     shortened = util.shorten(input_url)
@@ -49,12 +52,12 @@ def handler(event, context):
     except ClientError as exc:
         if exc.response["Error"]["Code"] != "ConditionalCheckFailedException":
             log.exception("ddb_update_failure")
-            return util.http_error()
+            return util.http_error(origin=origin)
 
         response = ddb_client.get_item(TableName=ddb_table, Key=ddb_key)
     except Exception:
         log.exception("ddb_update_failure")
-        return util.http_error()
+        return util.http_error(origin=origin)
 
     if "Item" in response:
         # URL found in DynamoDB
@@ -68,7 +71,7 @@ def handler(event, context):
         if stored_url != input_url:
             log.error("collision_detected", ddb_response=response)
             # TODO have a graceful way to make the shortcode unique
-            return util.http_error()
+            return util.http_error(origin=origin)
 
     return util.http_response(
         {
@@ -78,4 +81,5 @@ def handler(event, context):
             "created_at": created_at,
         },
         status=200,
+        origin=origin,
     )

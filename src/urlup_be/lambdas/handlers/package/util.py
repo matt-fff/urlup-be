@@ -2,18 +2,70 @@ import base64
 import hashlib
 import json
 import os
-from typing import Any
+import re
+from typing import Any, Optional
 
-FRONTEND_URL = os.environ.get("FRONTEND_URL")
+import structlog
+
+URL_DELIMITER = "<<URL_DELIM>>"
+REGEX_PREFIX = "re:"
+
+LOG = structlog.get_logger()
 
 
-def http_response(body: dict[str, Any], status: int = 200) -> dict[str, Any]:
+def origin_matches(allowed_origin: str, origin: str) -> bool:
+    if not allowed_origin:
+        return False
+    if not allowed_origin.startswith(REGEX_PREFIX):
+        return allowed_origin == origin
+    return bool(re.match(allowed_origin[len(REGEX_PREFIX) :], origin))
+
+
+def get_allowed_frontends(
+    allowed_frontends: list[str] | None = None,
+) -> list[str]:
+    if allowed_frontends is None:
+        allowed_frontends = [
+            fe
+            for fe in os.environ.get("ALLOWED_FRONTENDS", "").split(
+                URL_DELIMITER
+            )
+            if fe
+        ]
+
+    return allowed_frontends
+
+
+def get_allowed_origin(
+    origin: str, allowed_frontends: list[str] | None = None
+) -> Optional[str]:
+    allowed_frontends = get_allowed_frontends(
+        allowed_frontends=allowed_frontends
+    )
+
+    if not allowed_frontends or not origin:
+        return None
+
+    for allowed_origin in allowed_frontends:
+        if origin_matches(allowed_origin, origin):
+            return origin
+    return None
+
+
+def add_allow_origin(headers: dict[str, Any], origin: str) -> Optional[str]:
+    allowed_origin = get_allowed_origin(origin)
+    if allowed_origin:
+        headers["Access-Control-Allow-Origin"] = allowed_origin
+
+
+def http_response(
+    body: dict[str, Any], status: int = 200, origin: str = ""
+) -> dict[str, Any]:
     headers = {
         "Content-Type": "application/json",
     }
 
-    if FRONTEND_URL:
-        headers["Access-Control-Allow-Origin"] = FRONTEND_URL
+    add_allow_origin(headers, origin)
 
     return {
         "statusCode": status,
@@ -23,9 +75,9 @@ def http_response(body: dict[str, Any], status: int = 200) -> dict[str, Any]:
 
 
 def http_error(
-    message: str = "Internal server error", status: int = 500
+    message: str = "Internal server error", status: int = 500, origin: str = ""
 ) -> dict[str, Any]:
-    return http_response({"message": message}, status=status)
+    return http_response({"message": message}, status=status, origin=origin)
 
 
 def shorten(url: str, length=7) -> str:
