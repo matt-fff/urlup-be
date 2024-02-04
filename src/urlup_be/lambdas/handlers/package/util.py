@@ -5,21 +5,48 @@ import os
 import re
 from typing import Any, Optional
 
-ALLOWED_FRONTENDS = os.environ.get("ALLOWED_FRONTENDS", "").split(",")
-REGEX_PREFIX = "rematch:"
+import structlog
+
+URL_DELIMITER = "<<URL_DELIM>>"
+REGEX_PREFIX = "re:"
+
+LOG = structlog.get_logger()
 
 
 def origin_matches(allowed_origin: str, origin: str) -> bool:
+    if not allowed_origin:
+        return False
     if not allowed_origin.startswith(REGEX_PREFIX):
         return allowed_origin == origin
     return bool(re.match(allowed_origin[len(REGEX_PREFIX) :], origin))
 
 
-def get_allowed_origin(origin: str) -> Optional[str]:
-    if not ALLOWED_FRONTENDS or not origin:
+def get_allowed_frontends(
+    allowed_frontends: list[str] | None = None,
+) -> list[str]:
+    if allowed_frontends is None:
+        allowed_frontends = [
+            fe
+            for fe in os.environ.get("ALLOWED_FRONTENDS", "").split(
+                URL_DELIMITER
+            )
+            if fe
+        ]
+
+    return allowed_frontends
+
+
+def get_allowed_origin(
+    origin: str, allowed_frontends: list[str] | None = None
+) -> Optional[str]:
+    allowed_frontends = get_allowed_frontends(
+        allowed_frontends=allowed_frontends
+    )
+
+    if not allowed_frontends or not origin:
         return None
 
-    for allowed_origin in ALLOWED_FRONTENDS:
+    for allowed_origin in allowed_frontends:
         if origin_matches(allowed_origin, origin):
             return origin
     return None

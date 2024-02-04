@@ -1,122 +1,89 @@
-import json
-from datetime import datetime, timezone
+import os
 from typing import Any
 
-from freezegun import freeze_time
+import pytest
 
-from urlup_be.lambdas.handlers.package.get import handler as get_handler
-from urlup_be.lambdas.handlers.package.redirect import (
-    handler as redirect_handler,
+from urlup_be.lambdas.handlers.package import util
+
+
+@pytest.mark.parametrize(
+    "allowed_origin,origin,matches",
+    [
+        ("https://example.com", "http://example.com", False),
+        ("https://example.com", "https://example.com", True),
+        ("re:http.*://example\\.com", "https://example.com", True),
+        ("re:https?://example\\.com", "https://www.example.com", False),
+        ("re:https://.*example\\.com", "https://example.com", True),
+        ("re:https://.*example\\.com", "https://www.example.com", True),
+        ("re:https://.*example\\.com", "http://www.example.com", False),
+        ("re:http.*://.*example\\.com", "https://www.example.com", True),
+        ("re:http.*://.*example\\.com", "http://example.com", True),
+    ],
 )
-from urlup_be.lambdas.handlers.package.shorten import (
-    handler as shorten_handler,
+def test_origin_matches(allowed_origin: str, origin: str, matches: bool):
+    assert util.origin_matches(allowed_origin, origin) == matches
+
+
+@pytest.mark.parametrize(
+    "origin,allowed_frontends,allowed_origin",
+    [
+        ("", ["https://example.com"], None),
+        ("https://example.com", [], None),
+        ("https://example.com", None, None),
+        ("https://example.com", ["https://example.net"], None),
+        (
+            "https://example.com",
+            ["https://example.net", "https://example.com"],
+            "https://example.com",
+        ),
+        (
+            "https://example.net",
+            ["https://example.net", "https://example.com"],
+            "https://example.net",
+        ),
+        (
+            "https://example.net",
+            ["https://example.(net|com)", "https://example.com"],
+            None,
+        ),
+        (
+            "https://example.net",
+            ["re:https://example\\.(net|com)", "https://example.com"],
+            "https://example.net",
+        ),
+    ],
 )
-from urlup_be.lambdas.handlers.package.util import encode_body, shorten
+def test_get_allowed_origin(
+    origin: str,
+    allowed_frontends: list[str] | None,
+    allowed_origin: str | None,
+):
+    os.environ.pop("ALLOWED_FRONTENDS", "")
+    # Test with an explicit set of allowed_frontends
+    assert (
+        util.get_allowed_origin(origin, allowed_frontends=allowed_frontends)
+        == allowed_origin
+    )
 
-from .fixtures import *
+    # Test without any allowed frontends
+    assert util.get_allowed_origin(origin) is None
 
-
-def event_body(**kwargs) -> dict[str, Any]:
-    return {"body": encode_body(kwargs)}
-
-
-def event_qparams(**kwargs) -> dict[str, Any]:
-    return {"pathParameters": kwargs}
-
-
-def test_flow(dynamodb, dynamodb_table):
-    input_url = "https://example.com"
-    shortcode = shorten(input_url)
-
-    # test that the key isn't in the table
-    response = dynamodb_table.get_item(Key={"short": shortcode})
-    assert "Item" not in response
-
-    # test a redirect 404
-    response = redirect_handler(event_qparams(shortcode=shortcode), {})
-    assert response["statusCode"] == 404
-
-    # test a get 404
-    response = get_handler(event_body(shortcode=shortcode), {})
-    assert response["statusCode"] == 404
-
-    now = datetime.now(timezone.utc)
-    with freeze_time(now):
-        # Test initial shortening
-        response = shorten_handler(event_body(url=input_url), {})
-
-    assert response["statusCode"] == 200
-    assert json.loads(response["body"]) == {
-        "url": input_url,
-        "short": shortcode,
-        "clicks": 0,
-        "created_at": now.isoformat(),
-    }
-
-    response = dynamodb_table.get_item(Key={"short": shortcode})
-    assert "Item" in response
-
-    # Test get
-    response = get_handler(event_body(shortcode=shortcode), {})
-    assert response["statusCode"] == 200
-    assert json.loads(response["body"]) == {
-        "url": input_url,
-        "short": shortcode,
-        "clicks": 0,
-        "created_at": now.isoformat(),
-    }
-
-    # Test redirect
-    response = redirect_handler(event_qparams(shortcode=shortcode), {})
-    assert response["statusCode"] == 302
-    assert response["headers"]["Location"] == input_url
-
-    # Test get
-    response = get_handler(event_body(shortcode=shortcode), {})
-    assert response["statusCode"] == 200
-    assert json.loads(response["body"]) == {
-        "url": input_url,
-        "short": shortcode,
-        "clicks": 1,
-        "created_at": now.isoformat(),
-    }
+    # Test with the environment variable
+    if allowed_frontends is not None:
+        os.environ["ALLOWED_FRONTENDS"] = util.URL_DELIMITER.join(
+            allowed_frontends
+        )
+    assert util.get_allowed_origin(origin) == allowed_origin
 
 
-def test_duplicate(dynamodb, dynamodb_table):
-    input_url = "https://example.com"
-    shortcode = shorten(input_url)
-
-    shorten_event = {"body": encode_body({"url": input_url})}
-
-    now = datetime.now(timezone.utc)
-    with freeze_time(now):
-        # Test initial shortening
-        response = shorten_handler(shorten_event, {})
-    assert response["statusCode"] == 200
-    assert json.loads(response["body"]) == {
-        "url": input_url,
-        "short": shortcode,
-        "clicks": 0,
-        "created_at": now.isoformat(),
-    }
-
-    # Test duplicate request
-    response = shorten_handler(shorten_event, {})
-    assert response["statusCode"] == 200
-    assert json.loads(response["body"]) == {
-        "url": input_url,
-        "short": shortcode,
-        "clicks": 0,
-        "created_at": now.isoformat(),
-    }
-
-    # Test duplicate request, but with a trailing slash
-    shorten_event = {"body": encode_body({"url": f"{input_url}/"})}
-    response = shorten_handler(shorten_event, {})
-    assert response["statusCode"] == 200
-    assert json.loads(response["body"]) == {
-        "url": input_url,
-        "short": shortcode,
-        "clicks": 0,
-        "created_at": now.isoformat(),
-    }
+@pytest.mark.parametrize(
+    "test_body",
+    [
+        ({"Arbitrar": "keys", "and": ["val", "ues"]}),
+        ({"1234": 32145, "and": {"val": "ues"}}),
+    ],
+)
+def test_en_de_code(test_body: dict[str, Any]):
+    encoded = util.encode_body(test_body)
+    assert isinstance(encoded, str)
+    assert test_body == util.decode_body(encoded)

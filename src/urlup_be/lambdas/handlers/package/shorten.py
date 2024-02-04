@@ -14,7 +14,7 @@ def handler(event, context):
     # Initialize DynamoDB client
     ddb_client = boto3.client("dynamodb")
     ddb_table = os.environ["DDB_TABLE"]
-    origin = event.get("headers", {}).get("Origin")
+    origin = event.get("headers", {}).get("origin")
     log = LOG.bind(lambda_event=event, context=context, ddb_table=ddb_table)
 
     # Extract the URL from the event
