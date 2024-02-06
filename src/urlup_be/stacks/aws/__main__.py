@@ -259,7 +259,7 @@ def stack(conf: pulumi.Config):
         ],
     )
     plan_key = api_usage_plan(conf, api_gateway)
-    pulumi.export("api_key", plan_key.value)
+    pulumi.export("api_key", pulumi.Output.secret(plan_key.value))
 
     redirect_gateway = apigateway.RestAPI(
         "redirect",

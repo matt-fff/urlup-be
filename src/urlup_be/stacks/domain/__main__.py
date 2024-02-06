@@ -48,10 +48,10 @@ def stack(conf: pulumi.Config):
         )
 
         # Exports
-        pulumi.export(f"{prefix}_zone_arn", zone.arn)
-        pulumi.export(f"{prefix}_zone_id", zone.id)
-        pulumi.export(f"{prefix}_cert_arn", cert.arn)
-        pulumi.export(f"{prefix}_cert_id", cert.id)
+        pulumi.export(f"{prefix}_zone_arn", pulumi.Output.secret(zone.arn))
+        pulumi.export(f"{prefix}_zone_id", pulumi.Output.secret(zone.id))
+        pulumi.export(f"{prefix}_cert_arn", pulumi.Output.secret(cert.arn))
+        pulumi.export(f"{prefix}_cert_id", pulumi.Output.secret(cert.id))
         pulumi.export(f"{prefix}_domain", domain_conf["cert_domain"])
 
 
