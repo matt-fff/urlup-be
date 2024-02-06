@@ -31,6 +31,8 @@ jobs:
 
       - name: Pulumi Login
         run: pulumi login --non-interactive >/dev/null 2>&1
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
 
       - name: Build Infrastructure
         run: pip install -r src/urlup_be/stacks/domain/requirements.txt
@@ -39,15 +41,17 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-session-name: gha-deploy
-          role-to-assume: ${{ secrets.PULUMI_IAM_ROLE }}
+          role-to-assume: ${{ secrets.AWS_IAM_ROLE }}
           aws-region: ${{ vars.AWS_REGION }}
 
       - name: Pulumi Preview
         run: |
           cd src/urlup_be/stacks/domain
           pulumi stack select -c \
-            --stack "${DOMAIN_STACK}"
+            --stack "${STACK}"
           pulumi preview --non-interactive
+        env:
+          STACK: codefold/urlup-domain/dev
 
   preview-api:
     runs-on: ubuntu-latest
@@ -66,6 +70,8 @@ jobs:
 
       - name: Pulumi Login
         run: pulumi login --non-interactive >/dev/null 2>&1
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
 
       - name: Build lambdas
         run: |
@@ -79,17 +85,14 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-session-name: gha-deploy
-          role-to-assume: ${{ secrets.PULUMI_IAM_ROLE }}
+          role-to-assume: ${{ secrets.AWS_IAM_ROLE }}
           aws-region: ${{ vars.AWS_REGION }}
 
       - name: Pulumi Preview
         run: |
           cd src/urlup_be/stacks/aws
           pulumi stack select -c \
-            --stack "${AWS_STACK}"
+            --stack "${STACK}"
           pulumi preview --non-interactive
-
-    env:
-      PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
-      DOMAIN_STACK: codefold/urlup-domain/dev
-      AWS_STACK: codefold/urlup-aws-backend/dev
+        env:
+          STACK: codefold/urlup-aws-backend/dev
