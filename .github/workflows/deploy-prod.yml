@@ -1,0 +1,95 @@
+name: Deploy Production
+run-name: Deploy ${{ github.ref_name }}
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  preview-domain:
+    runs-on: ubuntu-latest
+    name: Pulumi Deploy Domain
+    environment: pulumi
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Pulumi Login
+        run: pulumi login --non-interactive >/dev/null 2>&1
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+
+      - name: Build Infrastructure
+        run: pip install -r src/urlup_be/stacks/domain/requirements.txt
+
+      - name: AWS Authentication
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-session-name: gha-deploy
+          role-to-assume: ${{ secrets.PULUMI_IAM_ROLE }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Pulumi Deploy
+        run: |
+          cd src/urlup_be/stacks/domain
+          pulumi stack select -c \
+            --stack "${STACK}"
+          pulumi up --non-interactive --yes
+        env:
+          STACK: codefold/urlup-domain/dev
+
+  preview-api:
+    runs-on: ubuntu-latest
+    name: Pulumi Deploy API
+    environment: pulumi
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Pulumi Login
+        run: pulumi login --non-interactive >/dev/null 2>&1
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+
+      - name: Build lambdas
+        run: |
+          cd src/urlup_be/lambdas
+          bash update_layer.sh
+
+      - name: Build Infrastructure
+        run: pip install -r src/urlup_be/stacks/aws/requirements.txt
+
+      - name: AWS Authentication
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-session-name: gha-deploy
+          role-to-assume: ${{ secrets.PULUMI_IAM_ROLE }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Pulumi Deploy
+        run: |
+          cd src/urlup_be/stacks/aws
+          pulumi stack select -c \
+            --stack "${STACK}"
+          pulumi up --non-interactive --yes
+        env:
+          STACK: codefold/urlup-aws-backend/dev

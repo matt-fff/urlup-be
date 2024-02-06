@@ -47,3 +47,5 @@ merge:
   required_statuses:
     - Trunk Check
     - Unit Tests
+    - Pulumi Preview Domain
+    - Pulumi Preview API

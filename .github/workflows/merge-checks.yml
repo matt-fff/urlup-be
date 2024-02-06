@@ -1,6 +1,3 @@
-# This workflow will install Python dependencies, run tests and lint with a single version of Python
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
-
 name: Merge Checks
 run-name: PR Checks for ${{ github.ref_name }}
 
@@ -22,14 +19,17 @@ jobs:
     name: Unit Tests
     steps:
       - uses: actions/checkout@v3
+
       - name: Set up Python 3.10
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5
         with:
           python-version: "3.10"
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements-dev.lock ]; then pip install -r requirements-dev.lock; fi
+
       - name: Unit Tests
         run: |
           pytest
