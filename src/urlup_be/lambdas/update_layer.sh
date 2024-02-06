@@ -2,8 +2,8 @@
 
 DEPDIR=".venv"
 
-rm -rf $DEPDIR
+rm -rf "${DEPDIR}"
 
 pip install \
 	-r requirements.txt \
-	-t $DEPDIR/python
+	-t "${DEPDIR}/python"
