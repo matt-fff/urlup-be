@@ -5,12 +5,28 @@ import os
 import re
 from typing import Any, Optional
 
+import sentry_sdk
 import structlog
+from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration
 
 URL_DELIMITER = "<<URL_DELIM>>"
 REGEX_PREFIX = "re:"
 
 LOG = structlog.get_logger()
+
+
+def init_sentry():
+    sentry_dsn = os.environ.get("SENTRY_DSN")
+    if not sentry_dsn:
+        LOG.debug("init_sentry.missing_dsn")
+        return
+
+    sentry_sdk.init(
+        dsn=sentry_dsn,
+        integrations=[AwsLambdaIntegration(timeout_warning=True)],
+        traces_sample_rate=1.0,
+        profiles_sample_rate=1.0,
+    )
 
 
 def origin_matches(allowed_origin: str, origin: str) -> bool:

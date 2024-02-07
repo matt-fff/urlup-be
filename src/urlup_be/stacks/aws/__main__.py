@@ -10,7 +10,7 @@ def api_usage_plan(
     api_gateway: apigateway.RestAPI,
 ) -> aws.apigateway.UsagePlanKey:
     key = aws.apigateway.ApiKey("defaultKey")
-    usage = conf.require_object("usage")
+    usage = conf.get_object("usage")
 
     plan = aws.apigateway.UsagePlan(
         "defaultPlan",
@@ -22,12 +22,12 @@ def api_usage_plan(
                 ),
             ],
             quota_settings=aws.apigateway.UsagePlanQuotaSettingsArgs(
-                limit=usage.get("period_limit"),
-                period=usage.get("period_type"),
+                limit=int(usage.get("period_limit", 3000)),
+                period=usage.get("period_type", "DAY"),
             ),
             throttle_settings=aws.apigateway.UsagePlanThrottleSettingsArgs(
-                burst_limit=usage.get("burst_limit"),
-                rate_limit=usage.get("rate_limit"),
+                burst_limit=int(usage.get("burst_limit", 300)),
+                rate_limit=int(usage.get("rate_limit", 60)),
             ),
         ),
     )
@@ -48,7 +48,7 @@ def lambdas(
     conf: pulumi.Config, dynamo_table
 ) -> dict[str, aws.lambda_.Function]:
     lambdas_dir = "../../lambdas"
-    tags = conf.require_object("tags")
+    tags = conf.get_object("tags")
 
     # Create an IAM role that the Lambda function can assume
     lambda_role = aws.iam.Role(
@@ -125,6 +125,7 @@ def lambdas(
                 "ALLOWED_FRONTENDS": "<<URL_DELIM>>".join(
                     conf.require_object("allowed_frontends")
                 ),
+                "SENTRY_DSN": conf.get_secret("sentry_dsn"),
             }
         },
     )
@@ -157,9 +158,9 @@ def configure_gateway(
     gateway: apigateway.RestAPI,
 ):
     domain_conf = conf.require_object(f"{prefix}_domain")
-    zone_domain = domain_conf.get("zone_domain")
-    cert_domain = domain_conf.get("cert_domain")
-    gateway_domain = domain_conf.get("gateway_domain")
+    zone_domain = domain_conf["zone_domain"]
+    cert_domain = domain_conf["cert_domain"]
+    gateway_domain = domain_conf["gateway_domain"]
 
     zone = aws.route53.get_zone(name=zone_domain)
 
@@ -212,7 +213,7 @@ def configure_gateway(
 def stack(conf: pulumi.Config):
     # Define the DynamoDB table
     dynamo_table = aws.dynamodb.Table(
-        conf.get("table_name"),
+        conf.require("table_name"),
         attributes=[
             aws.dynamodb.TableAttributeArgs(
                 name="short",
@@ -229,7 +230,7 @@ def stack(conf: pulumi.Config):
     # Create an API Gateway to trigger the Lambda functions
     api_gateway = apigateway.RestAPI(
         "api",
-        stage_name=conf.get("env"),
+        stage_name=conf.require("env"),
         request_validator=apigateway.RequestValidator.ALL,
         routes=[
             apigateway.RouteArgs(
@@ -263,7 +264,7 @@ def stack(conf: pulumi.Config):
 
     redirect_gateway = apigateway.RestAPI(
         "redirect",
-        stage_name=conf.get("env"),
+        stage_name=conf.require("env"),
         request_validator=apigateway.RequestValidator.ALL,
         routes=[
             apigateway.RouteArgs(
