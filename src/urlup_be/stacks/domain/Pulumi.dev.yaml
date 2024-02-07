@@ -1,16 +1,2 @@
-config:
-  aws:region: us-east-1
-  api_domain:
-    zone_domain: urlup.org
-    cert_domain: api.urlup.org
-  redirect_domain:
-    zone_domain: uu1.ink
-    cert_domain: uu1.ink
-  frontend_prod_domain:
-    zone_domain: urlup.org
-    cert_domain: urlup.org
-  frontend_staging_domain:
-    zone_domain: codefold.net
-    cert_domain: "*.urlup.codefold.net"
-  tags:
-    app: urlup
+environment:
+  - urlup-dev

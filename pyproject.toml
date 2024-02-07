@@ -13,6 +13,7 @@ dependencies = [
   "pulumi_aws_apigateway>=2.1.1",
   "structlog>=23.3.0",
   "urllib3==1.26.18",
+  "sentry-sdk>=1.40.1",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"

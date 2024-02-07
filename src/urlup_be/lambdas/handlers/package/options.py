@@ -3,6 +3,7 @@ import structlog
 from . import util
 
 LOG = structlog.get_logger()
+util.init_sentry()
 
 
 def handler(event, context):
