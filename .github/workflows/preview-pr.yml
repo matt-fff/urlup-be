@@ -14,6 +14,6 @@ permissions:
   id-token: write
 
 jobs:
-  deploy:
+  preview:
     uses: matt-fff/urlup-be-infra/.github/workflows/preview-pr.yml@mw/reuse-wf
     secrets: inherit
