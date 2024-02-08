@@ -15,5 +15,5 @@ permissions:
 
 jobs:
   preview:
-    uses: matt-fff/urlup-be-infra/.github/workflows/preview-pr.yml@mw/reuse-wf
+    uses: matt-fff/urlup-be-infra/.github/workflows/preview-pr.yml@main
     secrets: inherit
